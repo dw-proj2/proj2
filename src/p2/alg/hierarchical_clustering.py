@@ -53,7 +53,7 @@ def h_clustering(data, dist_func, k, attr_limit):
         data_groups.append(new_group)
         cnt += 1
         if cnt % 100 == 0 and DEBUG:
-            print('%d new groups generated' % cnt)
+            print('%d new groups generated, heap remaining: %d' % (cnt, len(heap)))
     return data_groups
 
 
