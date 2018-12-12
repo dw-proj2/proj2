@@ -6,17 +6,6 @@ from p2.preprocess.preprocess import read_data
 
 DEBUG = True
 
-class GroupDist:
-
-    def __init__(self, g1, g2, dist):
-        self.g1 = g1
-        self.g2 = g2
-        self.dist = dist
-        pass
-
-    def __lt__(self, other):
-        return self.dist < other.dist
-
 
 def cal_init_dist(data_groups, dist_func, attr_limit, heap):
     cnt = 0
@@ -24,11 +13,11 @@ def cal_init_dist(data_groups, dist_func, attr_limit, heap):
     for i in range(0, data_len):
         for j in range(i+1, data_len):
             dist = dist_func(data_groups[i], data_groups[j], data, attr_limit)
-            g_dist = GroupDist(i, j, dist)
+            g_dist = (dist, i, j)
             heapq.heappush(heap, g_dist)
         cnt += 1
         if cnt % 100 == 0 and DEBUG:
-            print('%d init dists generated' % cnt)
+            print('%d init dists generated, heap size: %d' % (cnt, len(heap)))
 
 
 def h_clustering(data, dist_func, k, attr_limit):
@@ -45,19 +34,22 @@ def h_clustering(data, dist_func, k, attr_limit):
     while len(heap) > k:
         # find the nearest non-deleted groups
         g_dist = heapq.heappop(heap)
-        if removed[g_dist.g1] or removed[g_dist.g2]:
+        if removed[g_dist[1]] or removed[g_dist[2]]:
             continue
         # combine them into a new group and delete ole groups
-        removed[g_dist.g1] = True
-        removed[g_dist.g2] = True
-        new_group = data_groups[g_dist.g1] + data_groups[g_dist.g2]
+        new_group = data_groups[g_dist[1]] + data_groups[g_dist[2]]
+        data_groups[g_dist[1]] = None
+        data_groups[g_dist[2]] = None
+        removed[g_dist[1]] = True
+        removed[g_dist[2]] = True
         new_index = len(data_groups)
         # calculate distance between new group and previous non-deleted groups
         for i in range(0, new_index):
             if not removed[i]:
                 dist = dist_func(data_groups[i], new_group, data, attr_limit)
-                g_dist = GroupDist(i, new_index, dist)
+                g_dist = (dist, i, new_index)
                 heapq.heappush(heap, g_dist)
+                removed.append(False)
         data_groups.append(new_group)
         cnt += 1
         if cnt % 100 == 0 and DEBUG:
