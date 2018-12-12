@@ -31,10 +31,12 @@ def h_clustering(data, dist_func, k, attr_limit):
         print('calculate init dists consumed: %fs' % (time() - start_time))
 
     cnt = 0
-    while len(heap) > k:
+    skipped = 0
+    while len(data) - cnt > k:
         # find the nearest non-deleted groups
         g_dist = heapq.heappop(heap)
         if removed[g_dist[1]] or removed[g_dist[2]]:
+            skipped += 1
             continue
         # combine them into a new group and delete ole groups
         new_group = data_groups[g_dist[1]] + data_groups[g_dist[2]]
@@ -52,9 +54,26 @@ def h_clustering(data, dist_func, k, attr_limit):
                 removed.append(False)
         data_groups.append(new_group)
         cnt += 1
-        if cnt % 100 == 0 and DEBUG:
-            print('%d new groups generated, heap remaining: %d' % (cnt, len(heap)))
+        if cnt % 100 == 0:
+            if DEBUG:
+                print('%d new groups generated, heap remaining: %d, skipped: %d' % (cnt, len(heap), skipped))
+            if cnt % 1000 == 0:
+                heap = re_heap(heap, removed)
     return data_groups
+
+
+def re_heap(heap, removed):
+    new_heap = []
+    rm_cnt = 0
+    for i in range(0, len(heap)):
+        item = heap[i]
+        if removed[item[1]] or removed[item[2]]:
+            rm_cnt += 1
+            continue
+        heapq.heappush(new_heap, item)
+    if DEBUG:
+        print('%d tuples removed' % (rm_cnt))
+    return new_heap
 
 
 def label_groups(groups, data_labels):
