@@ -12,7 +12,7 @@ def cal_init_dist(data_groups, dist_func, attr_limit, heap):
     data_len = len(data_groups)
     for i in range(0, data_len):
         for j in range(i+1, data_len):
-            dist = dist_func(data_groups[i], data_groups[j], data, attr_limit)
+            dist = dist_func(data_groups[i], data_groups[j], data, attr_limit, i, j)
             g_dist = (dist, i, j)
             heapq.heappush(heap, g_dist)
         cnt += 1
@@ -48,7 +48,7 @@ def h_clustering(data, dist_func, k, attr_limit):
         # calculate distance between new group and previous non-deleted groups
         for i in range(0, new_index):
             if not removed[i]:
-                dist = dist_func(data_groups[i], new_group, data, attr_limit)
+                dist = dist_func(data_groups[i], new_group, data, attr_limit, i, new_index)
                 g_dist = (dist, i, new_index)
                 heapq.heappush(heap, g_dist)
                 removed.append(False)
@@ -59,7 +59,11 @@ def h_clustering(data, dist_func, k, attr_limit):
                 print('%d new groups generated, heap remaining: %d, skipped: %d' % (cnt, len(heap), skipped))
             if cnt % 1000 == 0:
                 heap = re_heap(heap, removed)
-    return data_groups
+    new_groups = []
+    for group in data_groups:
+        if group is not None:
+            new_groups.append(group)
+    return new_groups
 
 
 def re_heap(heap, removed):
@@ -67,6 +71,7 @@ def re_heap(heap, removed):
     rm_cnt = 0
     for i in range(0, len(heap)):
         item = heap[i]
+        heap[i] = None
         if removed[item[1]] or removed[item[2]]:
             rm_cnt += 1
             continue
@@ -120,7 +125,7 @@ def _eucl_pt_distance(o0, o1, attr_limit):
     return math.pow(pow_sum, 0.5)
 
 
-def distance_min(g0, g1, data, attr_limit):
+def distance_min(g0, g1, data, attr_limit, g0_index, g1_index):
     min_dist = BIG_FLOAT
     for i in g0:
         for j in g1:
@@ -130,7 +135,7 @@ def distance_min(g0, g1, data, attr_limit):
     return min_dist
 
 
-def distance_max(g0, g1, data, attr_limit):
+def distance_max(g0, g1, data, attr_limit, g0_index, g1_index):
     max_dist = 0.0
     for i in g0:
         for j in g1:
@@ -140,9 +145,9 @@ def distance_max(g0, g1, data, attr_limit):
     return max_dist
 
 
-def distance_avg(g0, g1, data, attr_limit):
-    avg0 = group_avg(g0, data)
-    avg1 = group_avg(g1, data)
+def distance_avg(g0, g1, data, attr_limit, g0_index, g1_index):
+    avg0 = group_avg(g0, g0_index, data)
+    avg1 = group_avg(g1, g1_index, data)
     return _eucl_pt_distance(avg0, avg1, attr_limit)
 
 
@@ -153,14 +158,18 @@ def init_group(data):
     return groups
 
 
-group_avg_cache = {}
+group_avg_cache = []
 
 
-def group_avg(g, data):
-    if g in group_avg_cache:
-        return group_avg_cache[g]
+def group_avg(g, g_index, data):
+    if g_index > len(group_avg_cache) - 1:
+        diff = len(group_avg_cache) - g_index + 1
+        for i in range(0, diff):
+            group_avg_cache.append(None)
+    if group_avg_cache[g_index] is not None:
+        return group_avg_cache[g_index]
     avg = _group_avg(g, data)
-    group_avg_cache[g] = avg
+    group_avg_cache[g_index] = avg
     return avg
 
 
@@ -181,7 +190,7 @@ def _group_avg(g, data):
 def clear_caches():
     global group_avg_cache
     global dist_cache
-    group_avg_cache = {}
+    group_avg_cache = []
     dist_cache = {}
 
 
@@ -196,8 +205,8 @@ def evaluate_pr(groups, true_labels):
     FN = 0
     for i in range(0, data_len):
         for j in range(i+1, data_len):
-            li = true_labels[i]
-            lj = true_labels[j]
+            li = true_labels[i][0]
+            lj = true_labels[j][0]
             gi = -1
             gj = -1
             for k in range(0, len(group_sets)):
@@ -213,7 +222,7 @@ def evaluate_pr(groups, true_labels):
                 TN += 1
             else:
                 FN += 1
-    precision = float(TP + TN) / data_len
+    precision = float(TP + TN) / (TP + TN + FN + FP)
     recall = 1.0 if TP + FN == 0 else float(TP) / (TP + FN)
     return precision, recall
 
@@ -225,29 +234,30 @@ def evaluate_purity(groups, group_labels, true_labels):
         group = groups[i]
         group_label = group_labels[i]
         for data in group:
-            if true_labels[data] == group_label:
+            if true_labels[data][0] == group_label:
                 pos_cnt += 1
     return float(pos_cnt) / data_len
 
 
 if __name__ == '__main__':
-    input = '/Users/koutakashi/codes/dw2/data/Frogs_MFCCs.csv'
+    input = 'D:\codestore\dw2\data\Frogs_MFCCs.csv'
     k = 4
+    data_limit = 4000
 
-    for dist_func in [distance_min, distance_max, distance_avg]:
+    rst_file = open('results2_' + str(time()), 'w+')
+    for dist_func in [distance_avg, distance_max, distance_min]:
         for attr_limit in [4, 8, 12, 16, 22]:
-
-            data, labels = read_data(input)
+            data, labels = read_data(input, data_limit)
 
             clear_caches()
             groups = h_clustering(data, dist_func, k, attr_limit)
             group_labels = label_groups(groups, labels)
+
             precision, recall = evaluate_pr(groups, labels)
             purity = evaluate_purity(groups, group_labels, labels)
             print('dist: %s, attr_limit: %d' % (str(dist_func), attr_limit))
             print('precision: %f, recall: %f, purity: %f\n' % (precision, recall, purity))
 
-            rst_file = open('results2_' + str(time()), 'w+')
             rst_file.write('dist: %s, attr_limit: %d\n' % (str(dist_func), attr_limit))
             rst_file.write('precision: %f, recall: %f, purity: %f\n' % (precision, recall, purity))
-            rst_file.close()
+    rst_file.close()
