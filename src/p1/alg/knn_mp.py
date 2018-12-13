@@ -202,7 +202,7 @@ if __name__ == '__main__':
             tot = len(test_data)
             TP, FP, TN, FN = evaluate(pred_labels, test_labels)
             print(TP, FP, TN, FN)
-            precision = str(float(TP + TN) / tot)
+            precision = str(float(TP) / (TP + FP))
             recall = 1.0 if TP + FN == 0 else str(float(TP) / (TP + FN))
             print('precision: ' + precision + ', recall: ' + recall)
 
