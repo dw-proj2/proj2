@@ -245,10 +245,11 @@ if __name__ == '__main__':
     k = 4
     data_limit = 4000
 
+    data, labels = read_data(input, data_limit)
+
     rst_file = open('results2_' + str(time()), 'w+')
     for dist_func in [distance_avg, distance_max, distance_min]:
         for attr_limit in [4, 8, 12, 16, 22]:
-            data, labels = read_data(input, data_limit)
 
             clear_caches()
             groups = h_clustering(data, dist_func, k, attr_limit)
