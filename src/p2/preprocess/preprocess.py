@@ -1,12 +1,14 @@
+import random
+
 COMMA=','
 
 
 def read_data(filename, data_limit=-1):
+    raw = []
     data = []
     labels = []
     fin = open(filename)
     skip_first = True
-    cnt = 0
     for line in fin:
         if skip_first:
             skip_first = False
@@ -15,9 +17,10 @@ def read_data(filename, data_limit=-1):
         fields = line.split(COMMA)
         for i in range(0, 22):
             fields[i] = float(fields[i])
-        data.append(fields[0:22])
-        labels.append(fields[22:])
-        cnt += 1
-        if 0 < data_limit <= cnt:
-            break
+        raw.append(fields)
+    if data_limit > 0:
+        raw = random.sample(raw, data_limit)
+    for d in raw:
+        data.append(d[0:22])
+        labels.append(d[22])
     return data, labels
