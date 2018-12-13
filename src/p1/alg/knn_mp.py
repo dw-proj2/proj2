@@ -131,7 +131,7 @@ if __name__ == '__main__':
     rst_file = open('results_' + str(time()), 'w+')
 
     for k in range(1, 6):
-        for num_to_remove in range(0, 1):
+        for num_to_remove in range(0, 10):
             use_numeric = True
             thread_num = 8
 
@@ -139,28 +139,28 @@ if __name__ == '__main__':
             weights = [1.0] * n_attr
 
             # # use entropies as weights
-            for i in range(0, n_attr):
-                weights[i] = 1.0 / entropies[i]
+            # for i in range(0, n_attr):
+            #     weights[i] = 1.0 / entropies[i]
 
             # remove categorical columns with highest entropy
-            # entropy_order = []
-            # for i in range(0, n_attr):
-            #     max_entropy = 0.0
-            #     max_pos = -1
-            #     for j in range(0, n_attr):
-            #         if j in entropy_order:
-            #             continue
-            #         if entropies[j] > max_entropy:
-            #             max_entropy = entropies[j]
-            #             max_pos = j
-            #     entropy_order.append(max_pos)
-            # # skip non-categorical columns
-            # num_noncate = 0
-            # for i in range(0, n_attr):
-            #     if entropies[i] == 1.0:
-            #         num_noncate += 1
-            # for i in range(0, num_to_remove):
-            #     weights[entropy_order[num_noncate + i]] = 0.0
+            entropy_order = []
+            for i in range(0, n_attr):
+                max_entropy = 0.0
+                max_pos = -1
+                for j in range(0, n_attr):
+                    if j in entropy_order:
+                        continue
+                    if entropies[j] > max_entropy:
+                        max_entropy = entropies[j]
+                        max_pos = j
+                entropy_order.append(max_pos)
+            # skip non-categorical columns
+            num_noncate = 0
+            for i in range(0, n_attr):
+                if entropies[i] == 1.0:
+                    num_noncate += 1
+            for i in range(0, num_to_remove):
+                weights[entropy_order[num_noncate + i]] = 0.0
 
             start_time = time()
             data_size = len(test_data)
@@ -202,10 +202,11 @@ if __name__ == '__main__':
             tot = len(test_data)
             TP, FP, TN, FN = evaluate(pred_labels, test_labels)
             print(TP, FP, TN, FN)
-            precision = str(float(TP + TN) / tot)
+            precision = str(float(TP) / (TP + FP))
+            accuracy = str(float(TP + TN) / tot)
             recall = 1.0 if TP + FN == 0 else str(float(TP) / (TP + FN))
-            print('precision: ' + precision + ', recall: ' + recall)
+            print('precision: ' + precision + ', accuracy: ' + accuracy + ', recall: ' + recall)
 
             rst_file.write(str(k) + ' ' + str(num_to_remove) + ' ' + str(use_numeric) + '\n')
-            rst_file.write('precision: ' + precision + ', recall: ' + recall + '\n')
+            rst_file.write('precision: ' + precision + ', accuracy: ' + accuracy + ', recall: ' + recall + '\n')
     rst_file.close()
