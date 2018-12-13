@@ -214,8 +214,9 @@ def evaluate_pr(groups, true_labels):
             else:
                 FN += 1
     precision = float(TP) / (TP + FP)
+    accuracy = float(TP + TN) / (TP + FP + TN + FN)
     recall = 1.0 if TP + FN == 0 else float(TP) / (TP + FN)
-    return precision, recall
+    return precision, accuracy, recall
 
 
 def evaluate_purity(groups, group_labels, true_labels):
@@ -244,11 +245,11 @@ if __name__ == '__main__':
             clear_caches()
             groups = h_clustering(data, dist_func, k, attr_limit)
             group_labels = label_groups(groups, labels)
-            precision, recall = evaluate_pr(groups, labels)
+            precision, accuracy, recall = evaluate_pr(groups, labels)
             purity = evaluate_purity(groups, group_labels, labels)
             print('dist: %s, attr_limit: %d' % (str(dist_func), attr_limit))
-            print('precision: %f, recall: %f, purity: %f\n' % (precision, recall, purity))
+            print('precision: %f, accuracy: %f, recall: %f, purity: %f\n' % (precision, accuracy, recall, purity))
 
             rst_file.write('dist: %s, attr_limit: %d\n' % (str(dist_func), attr_limit))
-            rst_file.write('precision: %f, recall: %f, purity: %f\n' % (precision, recall, purity))
+            rst_file.write('precision: %f, accuracy: %f, recall: %f, purity: %f\n' % (precision, accuracy, recall, purity))
     rst_file.close()
