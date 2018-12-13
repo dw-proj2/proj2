@@ -196,8 +196,8 @@ def evaluate_pr(groups, true_labels):
     FN = 0
     for i in range(0, data_len):
         for j in range(i+1, data_len):
-            li = true_labels[i]
-            lj = true_labels[j]
+            li = true_labels[i][0]
+            lj = true_labels[j][0]
             gi = -1
             gj = -1
             for k in range(0, len(group_sets)):
@@ -213,7 +213,7 @@ def evaluate_pr(groups, true_labels):
                 TN += 1
             else:
                 FN += 1
-    precision = float(TP + TN) / data_len
+    precision = float(TP) / (TP + FP)
     recall = 1.0 if TP + FN == 0 else float(TP) / (TP + FN)
     return precision, recall
 
@@ -225,7 +225,7 @@ def evaluate_purity(groups, group_labels, true_labels):
         group = groups[i]
         group_label = group_labels[i]
         for data in group:
-            if true_labels[data] == group_label:
+            if true_labels[data][0] == group_label:
                 pos_cnt += 1
     return float(pos_cnt) / data_len
 
@@ -233,11 +233,13 @@ def evaluate_purity(groups, group_labels, true_labels):
 if __name__ == '__main__':
     input = '/Users/koutakashi/codes/dw2/data/Frogs_MFCCs.csv'
     k = 4
+    data_limit = -1
 
+    rst_file = open('results2_' + str(time()), 'w+')
     for dist_func in [distance_min, distance_max, distance_avg]:
         for attr_limit in [4, 8, 12, 16, 22]:
 
-            data, labels = read_data(input)
+            data, labels = read_data(input, data_limit)
 
             clear_caches()
             groups = h_clustering(data, dist_func, k, attr_limit)
@@ -247,7 +249,6 @@ if __name__ == '__main__':
             print('dist: %s, attr_limit: %d' % (str(dist_func), attr_limit))
             print('precision: %f, recall: %f, purity: %f\n' % (precision, recall, purity))
 
-            rst_file = open('results2_' + str(time()), 'w+')
             rst_file.write('dist: %s, attr_limit: %d\n' % (str(dist_func), attr_limit))
             rst_file.write('precision: %f, recall: %f, purity: %f\n' % (precision, recall, purity))
-            rst_file.close()
+    rst_file.close()
